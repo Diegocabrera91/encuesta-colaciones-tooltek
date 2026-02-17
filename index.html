@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <title>Encuesta Colaciones Tooltek SPA</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    * { box-sizing: border-box; }
+    body { 
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+      max-width: 500px; margin: 0 auto; padding: 20px; 
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh; color: #333;
+    }
+    .container { 
+      background: white; padding: 30px; border-radius: 15px; 
+      box-shadow: 0 10px 30px rgba(0,0,0,0.2); 
+    }
+    h2 { text-align: center; color: #4285f4; margin-bottom: 30px; }
+    label { 
+      display: block; margin: 15px 0 8px; font-weight: 600; 
+      color: #555; font-size: 16px;
+    }
+    label.required::after { content: " *"; color: #d32f2f; }
+    select, textarea { 
+      width: 100%; padding: 12px; border: 2px solid #e0e0e0; 
+      border-radius: 8px; font-size: 16px; transition: border-color 0.3s;
+    }
+    select:focus, textarea:focus { 
+      outline: none; border-color: #4285f4; box-shadow: 0 0 0 3px rgba(66,133,244,0.1);
+    }
+    textarea { resize: vertical; min-height: 100px; }
+    button { 
+      background: linear-gradient(45deg, #4285f4, #34a853); 
+      color: white; padding: 15px 30px; border: none; 
+      border-radius: 25px; cursor: pointer; width: 100%; 
+      font-size: 18px; font-weight: 600; margin-top: 20px;
+      transition: transform 0.2s;
+    }
+    button:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(66,133,244,0.4); }
+    button:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+    .error { color: #d32f2f; font-size: 14px; margin-top: 5px; display: none; }
+    .success { 
+      background: #e8f5e8; color: #2e7d32; padding: 15px; 
+      border-radius: 8px; text-align: center; display: none; 
+      margin-top: 20px; font-weight: 500;
+    }
+    .timestamp { font-size: 12px; color: #888; text-align: center; margin-top: 10px; }
+    @media (max-width: 480px) { .container { padding: 20px; margin: 10px; } }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>📦 Encuesta Colaciones Tooltek</h2>
+    
+    <form id="encuestaForm" method="POST" action="https://script.google.com/macros/s/AKfycbx0FhfDPqG6ZPVUQytbmY9rg96fcEXHNNkDuDCu-0lcyztrrtoj2rcfyud8Y6EDad2p/exec">
+      <label class="required">1. ¿Qué tan satisfecho estás con las colaciones? ⭐</label>
+      <select name="Satisfacción" id="satisfaccion" required>
+        <option value="">Selecciona un nivel...</option>
+        <option value="1">1 - Muy insatisfecho 😞</option>
+        <option value="2">2 - Insatisfecho 😕</option>
+        <option value="3">3 - Neutral 😐</option>
+        <option value="4">4 - Satisfecho 🙂</option>
+        <option value="5">5 - Muy satisfecho 😊</option>
+      </select>
+      <div id="errorSatisfaccion" class="error">Por favor selecciona tu nivel de satisfacción.</div>
+
+      <label class="required">2. ¿Qué mejorarías en las colaciones?</label>
+      <textarea name="Comentarios" id="comentarios" 
+        placeholder="Ej: más opciones saludables, mejor frescura, mayor variedad, presentación..." 
+        required minlength="10"></textarea>
+      <div id="errorComentarios" class="error">Escribe al menos 10 caracteres con tus sugerencias.</div>
+
+      <button type="submit" id="submitBtn">🚀 Enviar Encuesta</button>
+    </form>
+
+    <div id="mensajeSuccess" class="success">
+      ✅ ¡Gracias por tu feedback! 
+      <br><small>Tus datos se agregaron correctamente al Sheet de Tooltek.</small>
+    </div>
+    <div id="mensajeError" class="error"></div>
+    <div id="timestamp" class="timestamp"></div>
+  </div>
+
+  <script>
+    const form = document.getElementById('encuestaForm');
+    const submitBtn = document.getElementById('submitBtn');
+    const successMsg = document.getElementById('mensajeSuccess');
+    const errorMsg = document.getElementById('mensajeError');
+    const timestamp = document.getElementById('timestamp');
+
+    form.addEventListener('submit', async function(e) {
+      e.preventDefault();
+      
+      const satisfaccion = document.getElementById('satisfaccion').value;
+      const comentarios = document.getElementById('comentarios').value.trim();
+      let valid = true;
+
+      // Reset errores
+      document.querySelectorAll('.error').forEach(el => el.style.display = 'none');
+
+      // Validaciones
+      if (!satisfaccion) {
+        document.getElementById('errorSatisfaccion').style.display = 'block';
+        valid = false;
+      }
+      if (comentarios.length < 10) {
+        document.getElementById('errorComentarios').style.display = 'block';
+        valid = false;
+      }
+
+      if (!valid) return;
+
+      // Submit con fetch para mejor UX
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Enviando...';
+
+      try {
+        const formData = new FormData(form);
+        const response = await fetch(form.action, {
+          method: 'POST',
+          body: formData
+        });
+        
+        const result = await response.json();
+        if (result.result === 'success') {
+          successMsg.style.display = 'block';
+          timestamp.textContent = `Enviado: ${new Date().toLocaleString('es-CL')}`;
+          form.reset();
+        } else {
+          throw new Error(result.error || 'Error desconocido');
+        }
+      } catch (error) {
+        errorMsg.textContent = `Error: ${error.message}. Verifica conexión o Sheet.`;
+        errorMsg.style.display = 'block';
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = '🚀 Enviar Encuesta';
+      }
+    });
+  </script>
+</body>
+</html>
